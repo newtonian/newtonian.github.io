@@ -1,12 +1,17 @@
+<!--
+Short url: http://shorturl.at/gip49
+-->
 <html lang="en">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Crave-o-matic</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-        <!--<script src="https://kit.fontawesome.com/a4e7f26467.js" crossorigin="anonymous"></script>-->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
         <style>
+    .main {
+        width: 400px;
+    }
     .craving {
         color: #ccc;
     }
@@ -33,23 +38,19 @@
         margin-left: 15px;
         margin-right: 15px;
     }
-    .ca-odd {
-        background: #cce;
-    }
-    .main {
-        width: 400px;
-    }
     .date-label {
         font-size: small;
+    }
+    .button-footer-area {
+        text-align: center;
     }
         </style>
     </head>
     <body>
-        <div id="mainContainer" class="container main">
+        <div class="container main">
             <div class="row">
                 <div class="col">
                     <h5 class="title"><i class="fa fa-gift"></i> Crave-o-matic</h5>
-                    
                 </div>
             </div>
             <div class="row">
@@ -59,195 +60,336 @@
                 </div>
             </div>
             <div class="row checkmark-row">
-                <div id="today" class="col-2 date-label">Today</div>
-                <div id="currentCheckmarks" class="col checkmark-area"></div>
+                <div class="col-2 date-label">Today</div>
+                <div id="currentCheckmarks" class="col-10 checkmark-area"></div>
             </div>
         </div>
+
+        <div id="historicalContainer" class="container main"></div>
+
+        <div class="container main">
+            <div class="row">
+                <div class="col button-footer-area">
+                    <button type="button" class="btn btn-light" onclick="clearDataClick()">Clear data</button>
+                </div>
+            </div>
+        </div>
+
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
         <script>
-            const CURRENT_CHECKMARKS = "currentCheckmarks";
-            const HISTORICAL_CHECKMARKS = "historicalCheckmarks";
-            
-            var view = {
-                mainContainer: document.getElementById("mainContainer"),
-                today: document.getElementById("today"),
-                currentCheckmarks: document.getElementById("currentCheckmarks")
-            };
+            class View {
+                constructor() {
+                    this.log("Creating view object")
+                    this.currentCheckmarks = document.getElementById("currentCheckmarks");
+                    this.historicalContainer = document.getElementById("historicalContainer");
+                }
 
-            var data = {};
+                clearAll() {
+                    this.log("Clearing view");
+                    this.clearChildren(this.currentCheckmarks);
+                    this.clearChildren(this.historicalContainer);
+                }
+
+                setCurrentCheckmarks(encodedString) {
+                    // Ex: "ccsccs"
+                    this.log("Setting current checkmarks");
+                    this.setCheckmarks(this.currentCheckmarks, encodedString);
+                }
+
+                addCurrentCheckmark(type) {
+                    this.log("Adding new " + type + " current checkmark");
+                    if (type == "craving") {
+                        this.newCheckmark(this.currentCheckmarks, type);
+                    }
+                    else {
+                        let numCheckmarks = this.currentCheckmarks.childElementCount;
+                        if (numCheckmarks == 0) {
+                            // This is the first checkmark
+                            this.newCheckmark(this.currentCheckmarks, "succumb");
+                        }
+                        else {
+                            // Change last craving checkmark to succumb checkmark
+                            let lastCheckmark = this.currentCheckmarks.children[numCheckmarks - 1];
+                            lastCheckmark.classList.remove("craving");
+                            lastCheckmark.classList.add("succumb");
+                        }
+                    }
+                }
+
+                setHistoricalCheckmarks(encodedString) {
+                    // Ex: "12/22:ccs|12/21:ccs"
+                    this.log("Setting historical checkmarks " + encodedString)
+                    this.clearChildren(this.historicalContainer);
+                    if (encodedString == "") {
+                        return;
+                    }
+
+                    let date_encodedString = encodedString.split("|");
+                    for (let i = 0; i < date_encodedString.length; i++) {
+                        let tmp = date_encodedString[i].split(":");
+                        this.addHistoricalCheckmark(tmp[0], tmp[1]);
+                    }
+                }
+
+                addHistoricalCheckmark(date, encodedString) {
+                    // Ex: "12/21", "ccs"
+                    this.log("Adding historical checkmark " + date + ", " + encodedString);
+                    var row = document.createElement("div");
+                    row.classList.add("row", "checkmark-row");
+
+                    var dateElement = document.createElement("div");
+                    dateElement.classList.add("col-2", "date-label");
+                    dateElement.innerText = date;
+                    row.appendChild(dateElement);
+
+                    var checkmarkArea = document.createElement("div");
+                    checkmarkArea.classList.add("col-10", "checkmark-area");
+                    this.setCheckmarks(checkmarkArea, encodedString);
+                    row.appendChild(checkmarkArea);
+
+                    this.historicalContainer.appendChild(row);
+                }
+
+                setCheckmarks(element, encodedString) {
+                    this.log("Setting checkmarks " + encodedString);
+                    this.clearChildren(element);
+                    for (let i = 0; i < encodedString.length; i++) {
+                        let x = encodedString.charAt(i);
+                        if (x == 'c') {
+                            this.newCheckmark(element, "craving");
+                        }
+                        if (x == 's') {
+                            this.newCheckmark(element, "succumb");
+                        }
+                    }
+                }
+
+                newCheckmark(element, type) {
+                    this.log("Creating new " + type + " checkmark");
+                    let checkmark = document.createElement("i");
+                    checkmark.classList.add("fa", "fa-check-circle", "checkmark", type);
+                    element.appendChild(checkmark);
+                }
+
+                clearChildren(element) {
+                    this.log("Removing " + element.childElementCount + " children");
+                    while (element.firstChild) {
+                        element.removeChild(element.firstChild);
+                    }
+                }
+
+                log(msg) {
+                    console.log("view: " + msg);
+                }
+            }
+
+            class Data {
+                constructor() {
+                    this.log("Creating data object");
+                    this.init(document.cookie);
+                }
+
+                init(cookieString) {
+                    this.log("Initializing '" + cookieString + "'");
+                    this.cookieString = cookieString;
+                    this.checkmarks = []
+                    let encodedString = this.getCookie("checkmarks");
+                    let date_encodedString = encodedString.split("|");
+
+                    for (let i = 0; i < date_encodedString.length; i++) {
+                        let de = date_encodedString[i];
+                        if (de == "") {
+                            continue
+                        }
+
+                        let tmp = de.split(":");
+                        this.checkmarks[i] = {
+                            date: tmp[0],
+                            encodedString: tmp[1]
+                        }
+                    }
+
+                    this.log("Added " + this.checkmarks.length + " checkmarks");
+                    this.trimCheckmarks();
+                }
+
+                clearAll() {
+                    this.cookieString = "";
+                    this.checkmarks = [];
+                    this.save();
+                }
+
+                getTodaysCheckmarks() {
+                    let today = this.todaysDate();
+                    if (this.checkmarks[0] && this.checkmarks[0].date == today) {
+                        return this.checkmarks[0];
+                    }
+                    return {
+                        date: today,
+                        encodedString: ""
+                    }
+                }
+
+                getHistoricalCheckmarks() {
+                    let historical = [];
+                    let today = this.todaysDate();
+                    for (let i = 0; i < this.checkmarks.length; i++) {
+                        let checkmark = this.checkmarks[i];
+                        if (checkmark.date != today) {
+                            historical[historical.length] = checkmark;
+                        }
+                    }
+                    return historical;
+                }
+
+                getHistoricalCheckmarksEncodedString() {
+                    let historical = this.getHistoricalCheckmarks();
+                    return this.getEncodedString(historical);
+                }
+                
+                addCheckmark(type) {
+                    this.log("Adding new " + type + " checkmark");
+                    let today = this.todaysDate();
+                    let c = (type == "craving") ? 'c' : 's';
+                    if (this.checkmarks[0] && this.checkmarks[0].date == today) {
+                        let encodedString = this.checkmarks[0].encodedString;
+                        this.log("Current encoding " + encodedString);
+                        if (c == 's') {
+                            let lastIndex = encodedString.length - 1;
+                            encodedString = encodedString.substring(0, lastIndex) + c;
+                        }
+                        else {
+                            encodedString += c
+                        }
+                        this.log("New encoding " + encodedString);
+                        this.checkmarks[0].encodedString = encodedString;
+                    }
+                    else {
+                        console.log("Adding new checkmarks")
+                        this.checkmarks.splice(0, 0, {
+                            date: today,
+                            encodedString: c
+                        });
+                    }
+
+                    this.trimCheckmarks();
+                    this.save();
+                }
+
+                trimCheckmarks() {
+                    while (this.checkmarks.length > 30) {
+                        console.log("Popping checkmark");
+                        this.checkmarks.pop();
+                    }
+                }
+
+                save() {
+                    this.log("Saving data");
+                    this.setCookie("checkmarks", this.getEncodedString(this.checkmarks));
+                }
+
+                getEncodedString(checkmarks) {
+                    var s = "";
+                    for (let i = 0; i < checkmarks.length; i++) {
+                        let checkmark = checkmarks[i];
+                        if (s != "") {
+                            s += "|";
+                        }
+                        s += checkmark.date + ":" + checkmark.encodedString;
+                    }
+                    return s;
+                }
+
+                todaysDate() {
+                    var now = new Date();
+                    var dd = String(now.getDate()).padStart(2, '0');
+                    var mm = String(now.getMonth() + 1).padStart(2, '0'); //January is 0!
+                    var yyyy = now.getFullYear();
+                    return mm + '/' + dd;
+                }
+
+                getCookie(key) {
+                    let name = key + "=";
+                    let decodedCookie = decodeURIComponent(this.cookieString);
+                    let ca = decodedCookie.split(";");
+                    
+                    for (let i = 0; i < ca.length; i++) {
+                        let c = ca[i];
+                        while (c.charAt(0) == ' ') {
+                            c = c.substring(1);
+                        }
+                        if (c.indexOf(name) == 0) {
+                            return c.substring(name.length, c.length);
+                        }
+                    }
+
+                    return "";
+                }
+
+                setCookie(key, value) {
+                    console.log("Setting cookie " + key + "=" + value);
+                    document.cookie = key + "=" + value;
+                }
+
+                log(msg) {
+                    console.log("data: " + msg);
+                }
+            }
+
+            class App {
+                constructor() {
+                    this.log("Creatying app object");
+                }
+
+                redraw() {
+                    this.log("Redrawing view");
+                    view.clearAll();
+                    let today = data.getTodaysCheckmarks();
+                    view.setCurrentCheckmarks(today.encodedString);
+
+                    let historical = data.getHistoricalCheckmarksEncodedString();
+                    view.setHistoricalCheckmarks(historical);
+                }
+
+                addCheckmark(type) {
+                    data.addCheckmark(type);
+                    this.redraw()
+                }
+
+                clearAll() {
+                    data.clearAll();
+                    this.redraw();
+                }
+
+                log(msg) {
+                    console.log("app: " + msg);
+                }
+            }
 
             function onLoad() {
                 console.log("Loading application");
-                reloadData();
-                refreshView();
-            }
-
-            function reloadData() {
-                console.log("Reloading data");
-                console.log("cookie: " + document.cookie);
-                data.currentCheckmarks = retrieveCurrentCheckmarks();
-                data.historicalCheckmarks = retrieveHistoricalCheckmarks();
-            }
-
-            function refreshView() {
-                console.log("Refreshing view");
-                refreshCurrentCheckmarks();
-                refreshHistoricalCheckmarks();
-            }
-
-            function refreshCurrentCheckmarks() {
-                console.log("Refreshing current checkmarks");
-                view.today.innerText = data.currentCheckmarks.date;
-                refreshCheckmarkArea(view.currentCheckmarks, data.currentCheckmarks.checkmarks);
-            }
-
-            function refreshHistoricalCheckmarks() {
-                console.log("Removing historical checkmark areas");
-                console.log("Adding " + data.historicalCheckmarks.length + " historical checkmark areas");
-            }
-
-            function refreshCheckmarkArea(element, encodedString) {
-                console.log("Removing checkmark area children");
-                while (element.firstChild) {
-                    element.removeChild(element.firstChild);
-                }
-
-                console.log("Rendering checkmark string " + encodedString);
-                for (let i = 0; i < encodedString.length; i++) {
-                    let typeChar = encodedString.charAt(i);
-                    if (typeChar == 'c') {
-                        newCheckmark(element, "craving");
-                    }
-                    if (typeChar == 's') {
-                        newCheckmark(element, "succumb");
-                    }
-                }
+                app.redraw();
             }
 
             function cravingClick() {
                 console.log("New craving click");
-                newCheckmark(view.currentCheckmarks, "craving");
-                updateCurrentCheckmarksData();
+                app.addCheckmark("craving");
             }
 
             function succumbClick() {
                 console.log("New succumb click");
-                var numCheckmarks = view.currentCheckmarks.childElementCount;
-                if (numCheckmarks == 0) {
-                    // This is the first checkmark
-                    newCheckmark(view.currentCheckmarks, "succumb");
-                }
-                else {
-                    // Change craving checkmark to succumb checkmark
-                    var lastCheckmark = view.currentCheckmarks.children[numCheckmarks - 1];
-                    lastCheckmark.classList.remove("craving");
-                    lastCheckmark.classList.add("succumb");
-                }
-                updateCurrentCheckmarksData();
+                app.addCheckmark("succumb");
             }
 
-            function updateCurrentCheckmarksData() {
-                console.log("Updating current checkmarks data");
-                data.currentCheckmarks.checkmarks = encodeCheckmarkArea(view.currentCheckmarks);
-                saveCurrentCheckmarks();
+            function clearDataClick() {
+                console.log("Clear data click");
+                app.clearAll();
             }
 
-            function saveCurrentCheckmarks() {
-                var encodedString = data.currentCheckmarks.date + ":" + data.currentCheckmarks.checkmarks;
-                console.log("Saving current checkmark " + encodedString);
-                setCookie(CURRENT_CHECKMARKS, encodedString);
-            }
-
-            function encodeCheckmarkArea(element) {
-                var encodedString = "";
-                for (let i = 0; i < element.childElementCount; i++) {
-                    let c = element.children[i];
-                    if (c.classList.contains("craving")) {
-                        encodedString += "c";
-                    }
-                    else if (c.classList.contains("succumb")) {
-                        encodedString += "s";
-                    }
-                }
-                return encodedString;
-            }
-
-            function retrieveCurrentCheckmarks() {
-                console.log("Retrieving current checkmarks");
-                var data = {
-                    date: todaysDate(),
-                    checkmarks: ""
-                }
-                
-                var encoded = getCookie(CURRENT_CHECKMARKS);
-                if (encoded != "") {
-                    console.log("Retrieved " + encoded);
-                    let tmp = encoded.split(":");
-                    data.date = tmp[0];
-                    data.checkmarks = tmp[1];
-                }
-                else {
-                    console.log("No previous data found");
-                }
-
-                return data;
-            }
-
-            function retrieveHistoricalCheckmarks() {
-                var data = [];
-
-                var encoded = getCookie(HISTORICAL_CHECKMARKS);
-                if (encoded != "") {
-                    let checkmarks = encoded.split("|");
-                    for (let i = 0; i < checkmarks.length; i++) {
-                        let tmp = checkmarks[i].split(":");
-                        var item = {
-                            date: tmp[0],
-                            checkmarks: tmp[1]
-                        };
-                        data[data.length] = item;
-                    }
-                }
-
-                return data;
-            }
-
-            function newCheckmark(element, type) {
-                var checkmark = document.createElement("i");
-                checkmark.classList.add("fa", "fa-check-circle", "checkmark", type);
-                element.appendChild(checkmark);
-            }
-
-            function todaysDate() {
-                var now = new Date();
-                var dd = String(now.getDate()).padStart(2, '0');
-                var mm = String(now.getMonth() + 1).padStart(2, '0'); //January is 0!
-                var yyyy = now.getFullYear();
-                return mm + '/' + dd;
-            }
-
-            function setCookie(key, value) {
-                document.cookie = key + "=" + value;
-            }
-
-            function getCookie(key) {
-                let name = key + "=";
-                let decodedCookie = decodeURIComponent(document.cookie);
-                let ca = decodedCookie.split(";");
-
-                for (let i = 0; i < ca.length; i++) {
-                    let c = ca[i];
-                    while (c.charAt(0) == ' ') {
-                        c = c.substring(1);
-                    }
-                    if (c.indexOf(name) == 0) {
-                        return c.substring(name.length, c.length);
-                    }
-                }
-
-                return "";
-            }
-
+            var view = new View();
+            var data = new Data();
+            var app = new App();
+            
             onLoad();
         </script>
     </body>
