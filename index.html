@@ -1,0 +1,253 @@
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Crave-o-matic</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+        <script src="https://kit.fontawesome.com/143c083064.js" crossorigin="anonymous"></script>
+        <style>
+    .craving {
+        color: #ccc;
+    }
+    .succumb {
+        color: #45f;
+    }
+    .checkmark {
+        padding: 2px;
+    }
+    .title {
+        background: #7952B3;
+        color: white;
+        text-align: center;
+        padding-top: 15px;
+        padding-bottom: 15px;
+    }
+    .button-area {
+        text-align: center;
+    }
+    .checkmark-row {
+        border-bottom: solid 1px #7952B3;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        margin-left: 15px;
+        margin-right: 15px;
+    }
+    .ca-odd {
+        background: #cce;
+    }
+    .main {
+        width: 400px;
+    }
+    .date-label {
+        font-size: small;
+    }
+        </style>
+    </head>
+    <body>
+        <div id="mainContainer" class="container main">
+            <div class="row">
+                <div class="col">
+                    <h5 class="title"><i class="fa-solid fa-gauge"></i> Crave-o-matic</h5>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col button-area">
+                    <button class="btn btn-secondary mb-3" onclick="cravingClick()">I'm having a craving</button>
+                    <button class="btn btn-primary mb-3" onclick="succumbClick()">I gave in</button>
+                </div>
+            </div>
+            <div class="row checkmark-row">
+                <div id="today" class="col-2 date-label">Today</div>
+                <div id="currentCheckmarks" class="col checkmark-area"></div>
+            </div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+        <script>
+            const CURRENT_CHECKMARKS = "currentCheckmarks";
+            const HISTORICAL_CHECKMARKS = "historicalCheckmarks";
+            
+            var view = {
+                mainContainer: document.getElementById("mainContainer"),
+                today: document.getElementById("today"),
+                currentCheckmarks: document.getElementById("currentCheckmarks")
+            };
+
+            var data = {};
+
+            function onLoad() {
+                console.log("Loading application");
+                reloadData();
+                refreshView();
+            }
+
+            function reloadData() {
+                console.log("Reloading data");
+                console.log("cookie: " + document.cookie);
+                data.currentCheckmarks = retrieveCurrentCheckmarks();
+                data.historicalCheckmarks = retrieveHistoricalCheckmarks();
+            }
+
+            function refreshView() {
+                console.log("Refreshing view");
+                refreshCurrentCheckmarks();
+                refreshHistoricalCheckmarks();
+            }
+
+            function refreshCurrentCheckmarks() {
+                console.log("Refreshing current checkmarks");
+                view.today.innerText = data.currentCheckmarks.date;
+                refreshCheckmarkArea(view.currentCheckmarks, data.currentCheckmarks.checkmarks);
+            }
+
+            function refreshHistoricalCheckmarks() {
+                console.log("Removing historical checkmark areas");
+                console.log("Adding " + data.historicalCheckmarks.length + " historical checkmark areas");
+            }
+
+            function refreshCheckmarkArea(element, encodedString) {
+                console.log("Removing checkmark area children");
+                while (element.firstChild) {
+                    element.removeChild(element.firstChild);
+                }
+
+                console.log("Rendering checkmark string " + encodedString);
+                for (let i = 0; i < encodedString.length; i++) {
+                    let typeChar = encodedString.charAt(i);
+                    if (typeChar == 'c') {
+                        newCheckmark("craving");
+                    }
+                    if (typeChar == 's') {
+                        newCheckmark("succumb");
+                    }
+                }
+            }
+
+            function cravingClick() {
+                console.log("New craving click");
+                newCheckmark(view.currentCheckmarks, "craving");
+                updateCurrentCheckmarksData();
+            }
+
+            function succumbClick() {
+                console.log("New succumb click");
+                var numCheckmarks = view.currentCheckmarks.childElementCount;
+                if (numCheckmarks == 0) {
+                    // This is the first checkmark
+                    newCheckmark(view.currentCheckmarks, "succumb");
+                }
+                else {
+                    // Change craving checkmark to succumb checkmark
+                    var lastCheckmark = view.currentCheckmarks.children[numCheckmarks - 1];
+                    lastCheckmark.classList.remove("craving");
+                    lastCheckmark.classList.add("succumb");
+                }
+                updateCurrentCheckmarksData();
+            }
+
+            function updateCurrentCheckmarksData() {
+                console.log("Updating current checkmarks data");
+                data.currentCheckmarks.checkmarks = encodeCheckmarkArea(view.currentCheckmarks);
+                saveCurrentCheckmarks();
+            }
+
+            function saveCurrentCheckmarks() {
+                var encodedString = data.currentCheckmarks.date + ":" + data.currentCheckmarks.checkmarks;
+                console.log("Saving current checkmark " + encodedString);
+                setCookie(CURRENT_CHECKMARKS, encodedString);
+            }
+
+            function encodeCheckmarkArea(element) {
+                var encodedString = "";
+                for (let i = 0; i < element.childElementCount; i++) {
+                    let c = element.children[i];
+                    if (c.classList.contains("craving")) {
+                        encodedString += "c";
+                    }
+                    else if (c.classList.contains("succumb")) {
+                        encodedString += "s";
+                    }
+                }
+                return encodedString;
+            }
+
+            function retrieveCurrentCheckmarks() {
+                console.log("Retrieving current checkmarks");
+                var data = {
+                    date: todaysDate(),
+                    checkmarks: ""
+                }
+                
+                var encoded = getCookie(CURRENT_CHECKMARKS);
+                if (encoded != "") {
+                    console.log("Retrieved " + encoded);
+                    let tmp = encoded.split(":");
+                    data.date = tmp[0];
+                    data.checkmarks = tmp[1];
+                }
+                else {
+                    console.log("No previous data found");
+                }
+
+                return data;
+            }
+
+            function retrieveHistoricalCheckmarks() {
+                var data = [];
+
+                var encoded = getCookie(HISTORICAL_CHECKMARKS);
+                if (encoded != "") {
+                    let checkmarks = encoded.split("|");
+                    for (let i = 0; i < checkmarks.length; i++) {
+                        let tmp = checkmarks[i].split(":");
+                        var item = {
+                            date: tmp[0],
+                            checkmarks: tmp[1]
+                        };
+                        data[data.length] = item;
+                    }
+                }
+
+                return data;
+            }
+
+            function newCheckmark(element, type) {
+                var checkmark = document.createElement("i");
+                checkmark.classList.add("fa-solid", "fa-circle-check", "checkmark", type);
+                element.appendChild(checkmark);
+            }
+
+            function todaysDate() {
+                var now = new Date();
+                var dd = String(now.getDate()).padStart(2, '0');
+                var mm = String(now.getMonth() + 1).padStart(2, '0'); //January is 0!
+                var yyyy = now.getFullYear();
+                return mm + '/' + dd;
+            }
+
+            function setCookie(key, value) {
+                document.cookie = key + "=" + value;
+            }
+
+            function getCookie(key) {
+                let name = key + "=";
+                let decodedCookie = decodeURIComponent(document.cookie);
+                let ca = decodedCookie.split(";");
+
+                for (let i = 0; i < ca.length; i++) {
+                    let c = ca[i];
+                    while (c.charAt(0) == ' ') {
+                        c = c.substring(1);
+                    }
+                    if (c.indexOf(name) == 0) {
+                        return c.substring(name.length, c.length);
+                    }
+                }
+
+                return "";
+            }
+
+            onLoad();
+            document.cookie
+        </script>
+    </body>
+</html>
