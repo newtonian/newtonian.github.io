@@ -48,7 +48,8 @@
         <div id="mainContainer" class="container main">
             <div class="row">
                 <div class="col">
-                    <h5 class="title"><i class="fa fa-life-ring"></i> Crave-o-matic</h5>
+                    <h5 class="title"><i class="fa fa-gift"></i> Crave-o-matic</h5>
+                    
                 </div>
             </div>
             <div class="row">
@@ -115,10 +116,10 @@
                 for (let i = 0; i < encodedString.length; i++) {
                     let typeChar = encodedString.charAt(i);
                     if (typeChar == 'c') {
-                        newCheckmark("craving");
+                        newCheckmark(element, "craving");
                     }
                     if (typeChar == 's') {
-                        newCheckmark("succumb");
+                        newCheckmark(element, "succumb");
                     }
                 }
             }
@@ -248,7 +249,6 @@
             }
 
             onLoad();
-            document.cookie
         </script>
     </body>
 </html>
