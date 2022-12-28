@@ -327,7 +327,7 @@
                     console.log("Setting cookie " + key + "=" + value);
                     var now = new Date();
                     var time = now.getTime();
-                    var newTime = time * 1000 * 60 * 24 * 365 * 100;
+                    var newTime = time + 1000 * 60 * 60 * 24 * 365 * 100;
                     now.setTime(newTime);
                     document.cookie = key + "=" + value + ";expires=" + now.toUTCString() + ";path=/";
                 }
